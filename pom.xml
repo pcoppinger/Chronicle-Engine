@@ -21,9 +21,9 @@
         <additionalparam>-Xdoclint:none</additionalparam>
     </properties>
     <parent>
-        <groupId>software.chronicle</groupId>
+        <groupId>net.openhft</groupId>
         <artifactId>chronicle-enterprise-root-pom</artifactId>
-        <version>1.0.9</version>
+        <version>1.0.3</version>
         <relativePath />
     </parent>
 
@@ -100,8 +100,8 @@
         </dependency>
 
         <dependency>
-            <groupId>software.chronicle</groupId>
-            <artifactId>chronicle-map-enterprise</artifactId>
+            <groupId>net.openhft</groupId>
+            <artifactId>chronicle-map</artifactId>
             <optional>true</optional>
         </dependency>
 
