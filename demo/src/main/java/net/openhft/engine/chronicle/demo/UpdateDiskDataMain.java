@@ -16,7 +16,7 @@ public class UpdateDiskDataMain {
 
     public static void main(String[] args) {
         AssetTree clientAssetTree = new VanillaAssetTree().
-                forRemoteAccess("localhost:8088", WireType.BINARY);
+                forRemoteAccess("127.0.0.1:8088", WireType.BINARY);
         Map<String, String> diskMap = clientAssetTree.acquireMap("/data/disk", String.class, String.class);
 
         long start = System.nanoTime();

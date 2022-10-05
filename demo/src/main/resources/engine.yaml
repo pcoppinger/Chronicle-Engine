@@ -8,13 +8,12 @@ etc: {
   #
   jmx: !JmxCfg {
     enabled: true
-    }
+    },
   #
-
   monitoring: !MonitorCfg {
-      subscriptionMonitoringEnabled: true
+      subscriptionMonitoringEnabled: true,
       userMonitoringEnabled: true
-  }
+  },
   #
   # Configure a group of node which form a local cluster.
   #
@@ -23,12 +22,12 @@ etc: {
 
     cluster: {
       context: !EngineClusterContext {
-      }
+      },
       host1: {
          hostId: 1,
          tcpBufferSize: 65536,
-         connectUri: localhost:8088,
-         timeoutMs: 1000,
+         connectUri: 127.0.0.1:8088,
+         timeoutMs: 1000
       }
 #      host2: {
 #         hostId: 2,
@@ -74,7 +73,7 @@ data: {
       valueType: !type String,
       compression: none,
       putReturnsNull: false,
-      removeReturnsNull: false,
+      removeReturnsNull: false
     },
     # a map which wraps ConcurrentHashMap
     map2:  !InMemoryMapCfg {
@@ -82,7 +81,7 @@ data: {
       valueType: !type String,
       compression: none,
       putReturnsNull: true,
-      removeReturnsNull: true,
+      removeReturnsNull: true
     }
   }
 stocks: {
@@ -93,7 +92,7 @@ stocks: {
     putReturnsNull: true,
     removeReturnsNull: true,
     import: ftse350.csv
-    }
+    },
   nyse: !InMemoryMapCfg {
     keyType: !type String,
     valueType: !type EndOfDay,

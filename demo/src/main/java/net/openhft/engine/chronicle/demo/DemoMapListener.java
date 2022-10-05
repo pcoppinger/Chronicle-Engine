@@ -19,7 +19,7 @@ import java.util.Scanner;
 public class DemoMapListener {
     public static void main(String[] args) {
         AssetTree clientAssetTree = new VanillaAssetTree().
-                forRemoteAccess("localhost:8088", WireType.BINARY);
+                forRemoteAccess("127.0.0.1:8088", WireType.BINARY);
 
         MapEventListener<String, String> mapEventListener = new MapEventListener<String, String>() {
             @Override

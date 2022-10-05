@@ -14,7 +14,7 @@ import java.util.Map;
 public class ChangeEndOfDayShort {
     public static void main(String[] args) {
         AssetTree clientAssetTree = new VanillaAssetTree().
-                forRemoteAccess("localhost:8088", WireType.BINARY);
+                forRemoteAccess("127.0.0.1:8088", WireType.BINARY);
         Map<String, EndOfDayShort> ftseMap = clientAssetTree.acquireMap("/stocks/ftse", String.class, EndOfDayShort.class);
         EndOfDayShort eodShort = ftseMap.get("3IN");
         eodShort.closingPrice = 9.99995;

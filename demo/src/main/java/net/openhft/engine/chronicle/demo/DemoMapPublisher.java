@@ -12,7 +12,7 @@ import net.openhft.chronicle.wire.WireType;
 public class DemoMapPublisher {
     public static void main(String[] args) {
         AssetTree clientAssetTree = new VanillaAssetTree().
-                forRemoteAccess("localhost:8088", WireType.BINARY);
+                forRemoteAccess("127.0.0.1:8088", WireType.BINARY);
         //Creates a VanillaMap underneath to publish into.
         Publisher<String> publisher = clientAssetTree.acquirePublisher("/data/map3", String.class);
         publisher.publish("test2");

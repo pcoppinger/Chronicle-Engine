@@ -84,7 +84,7 @@ public enum ManagementTools {
 
             // Build a URL which tells the RMIConnectorServer to bind to the RMIRegistry running on port 9000
             @NotNull JMXServiceURL url = new JMXServiceURL
-                    ("service:jmx:rmi:///jndi/rmi://localhost:" + port + "/jmxrmi");
+                    ("service:jmx:rmi:///jndi/rmi://127.0.0.1:" + port + "/jmxrmi");
             @NotNull Map<String, String> env = new HashMap<>();
             env.put("com.sun.management.jmxremote", "true");
             env.put("com.sun.management.jmxremote.ssl", "false");
