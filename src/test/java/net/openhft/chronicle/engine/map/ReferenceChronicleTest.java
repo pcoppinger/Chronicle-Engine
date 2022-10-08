@@ -18,6 +18,7 @@
 package net.openhft.chronicle.engine.map;
 
 import net.openhft.chronicle.core.Jvm;
+import net.openhft.chronicle.core.OS;
 import net.openhft.chronicle.core.onoes.ExceptionKey;
 import net.openhft.chronicle.core.threads.ThreadDump;
 import net.openhft.chronicle.engine.ShutdownHooks;
@@ -29,13 +30,10 @@ import net.openhft.chronicle.engine.api.pubsub.SubscriptionCollection;
 import net.openhft.chronicle.engine.api.pubsub.TopicSubscriber;
 import net.openhft.chronicle.engine.api.tree.Asset;
 import net.openhft.chronicle.engine.api.tree.AssetTree;
-import net.openhft.chronicle.engine.api.tree.RequestContext;
-import net.openhft.chronicle.engine.cfg.ChronicleMapCfg;
 import net.openhft.chronicle.engine.server.ServerEndpoint;
 import net.openhft.chronicle.engine.tree.VanillaAssetTree;
 import net.openhft.chronicle.network.TCPRegistry;
 import net.openhft.chronicle.network.connection.TcpChannelHub;
-import net.openhft.chronicle.wire.TextWire;
 import net.openhft.chronicle.wire.WireType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -94,12 +92,12 @@ public class ReferenceChronicleTest {
     }
 
     @Test(timeout = 5000)
-    public void testRemoteSubscriptionChronicle() throws IOException {
+    public void testRemoteSubscriptionMUFGChronicle() throws IOException {
 
         @NotNull AssetTree serverAssetTree = hooks.addCloseable(new VanillaAssetTree().forTesting());
         serverAssetTree.root().addWrappingRule(MapView.class, "map directly to KeyValueStore", VanillaMapView::new, KeyValueStore.class);
-
-        serverAssetTree.root().addLeafRule(KeyValueStore.class, "use Chronicle Map", this::createMap);
+        serverAssetTree.root().addLeafRule(KeyValueStore.class, "use Chronicle Map", (context, asset) ->
+                new ChronicleMapKeyValueStore(context.basePath(OS.TARGET).entries(50).averageValueSize(2_000_000), asset));
 
         @NotNull ServerEndpoint serverEndpoint = hooks.addCloseable(new ServerEndpoint(hostPortToken, serverAssetTree, "cluster"));
         @NotNull AssetTree clientAssetTree = hooks.addCloseable(new VanillaAssetTree().forRemoteAccess(hostPortToken, WireType.BINARY));
@@ -114,31 +112,13 @@ public class ReferenceChronicleTest {
         }
     }
 
-    private <K, V> AuthenticatedKeyValueStore<K, V> createMap(RequestContext requestContext, Asset asset) {
-        return new ChronicleMapKeyValueStore<>(createConfig(requestContext), asset);
-    }
-
-    private ChronicleMapCfg createConfig(RequestContext requestContext) {
-        ChronicleMapCfg cfg = (ChronicleMapCfg) TextWire.from("!ChronicleMapCfg {\n" +
-                "      entries: 10000,\n" +
-                "      keyClass: !type String,\n" +
-                "      valueClass: !type String,\n" +
-                "      exampleKey: \"some_key\",\n" +
-                "      exampleValue: \"some_value\",\n" +
-                "      mapFileDataDirectory: data/mapData,\n" +
-                "    }").readObject();
-
-        cfg.name(requestContext.fullName());
-        return cfg;
-    }
-
     @Test(timeout = 5000)
-    public void testLocalSubscriptionChronicle() {
+    public void testLocalSubscriptionMUFGChronicle() {
 
         @NotNull AssetTree serverAssetTree = hooks.addCloseable(new VanillaAssetTree().forTesting());
         serverAssetTree.root().addWrappingRule(MapView.class, "map directly to KeyValueStore", VanillaMapView::new, KeyValueStore.class);
-
-        serverAssetTree.root().addLeafRule(KeyValueStore.class, "use Chronicle Map", this::createMap);
+        serverAssetTree.root().addLeafRule(KeyValueStore.class, "use Chronicle Map", (context, asset) ->
+                new ChronicleMapKeyValueStore(context.basePath(OS.TARGET).entries(50).averageValueSize(2_000_000), asset));
         test(serverAssetTree);
         serverAssetTree.close();
 

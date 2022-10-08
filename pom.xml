@@ -101,12 +101,6 @@
 
         <dependency>
             <groupId>net.openhft</groupId>
-            <artifactId>chronicle-map</artifactId>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
-            <groupId>net.openhft</groupId>
             <artifactId>chronicle-network</artifactId>
         </dependency>
 

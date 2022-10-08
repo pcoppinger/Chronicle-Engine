@@ -47,6 +47,12 @@ public class RunEngineMain {
         YamlLogging.setAll(true);
         @NotNull String name = args.length > 0 ? args[0] : resolveConfigurationFile();
         EngineInstance.engineMain(HOST_ID, name, "cluster");
+        while (true) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException ignored) {
+            }
+        }
     }
 
     @NotNull

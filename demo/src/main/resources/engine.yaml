@@ -12,7 +12,7 @@
     #}
 
     monitoring: !MonitorCfg {
-        subscriptionMonitoringEnabled: true
+        subscriptionMonitoringEnabled: true,
         userMonitoringEnabled: false
     },
     #
@@ -40,23 +40,23 @@
           # connection are established originally bi-directionally, then the connection with the
           # hostID is dropped
           connectionStrategy: !HostIdConnectionStrategy {},
-          serverThreadingStrategy: CONCURRENT,
+          serverThreadingStrategy: CONCURRENT
         },
         host1: {
           hostId: 1,
           tcpBufferSize: 65536,
-          connectUri: localhost:8088,
+          connectUri: localhost:8088
         },
         host2: {
            hostId: 2,
            tcpBufferSize: 65536,
-           connectUri: localhost:8089,
+           connectUri: localhost:8089
         }
   #       host3: {
   #           hostId: 3,
   #           tcpBufferSize: 65536,
   #           connectUri: server3:8088,
-  #           timeoutMs: 1000,
+  #           timeoutMs: 1000
   #        }
       }
     }
@@ -72,15 +72,15 @@
       compression: none,
       putReturnsNull: false,
       removeReturnsNull: false,
-      diskPath: demo-data
+      diskPath: ./demo-data
     },
     chronicle: !ChronicleMapCfg {
-      diskPath: /tmp/data,
       keyType: !type String,
       valueType: !type String,
       compression: none,
       putReturnsNull: false,
       removeReturnsNull: false,
+      diskPath: ./data,
       entries: 2000,
       averageSize: 1000
     },
@@ -90,7 +90,7 @@
       valueType: !type String,
       compression: none,
       putReturnsNull: false,
-      removeReturnsNull: false,
+      removeReturnsNull: false
     },
     # a map which wraps ConcurrentHashMap
     map2:  !InMemoryMapCfg {
@@ -98,7 +98,7 @@
       valueType: !type String,
       compression: none,
       putReturnsNull: true,
-      removeReturnsNull: true,
+      removeReturnsNull: true
     }
   },
   stocks: {
@@ -108,7 +108,7 @@
       compression: none,
       putReturnsNull: true,
       removeReturnsNull: true,
-      import: ftse350.csv
+      import: ./src/main/resources/ftse350.csv
     },
     nyse: !InMemoryMapCfg {
       keyType: !type String,
@@ -116,7 +116,7 @@
       compression: none,
       putReturnsNull: true,
       removeReturnsNull: true,
-      import: nyse.csv
+      import: ./src/main/resources/nyse.csv
     }
   }
 }

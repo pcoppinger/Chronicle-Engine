@@ -18,24 +18,21 @@
 package net.openhft.chronicle.engine.map;
 
 import net.openhft.chronicle.core.Jvm;
-import net.openhft.chronicle.core.io.IOTools;
+import net.openhft.chronicle.engine.ShutdownHooks;
 import net.openhft.chronicle.engine.ThreadMonitoringTest;
 import net.openhft.chronicle.engine.api.map.KeyValueStore;
 import net.openhft.chronicle.engine.api.map.MapEvent;
 import net.openhft.chronicle.engine.api.map.MapView;
-import net.openhft.chronicle.engine.api.tree.Asset;
 import net.openhft.chronicle.engine.api.tree.AssetTree;
-import net.openhft.chronicle.engine.api.tree.RequestContext;
-import net.openhft.chronicle.engine.cfg.ChronicleMapCfg;
 import net.openhft.chronicle.engine.server.ServerEndpoint;
 import net.openhft.chronicle.engine.tree.VanillaAssetTree;
 import net.openhft.chronicle.network.TCPRegistry;
-import net.openhft.chronicle.wire.TextWire;
 import net.openhft.chronicle.wire.WireType;
 import net.openhft.chronicle.wire.YamlLogging;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -47,17 +44,15 @@ import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 @RunWith(value = Parameterized.class)
 public class TestInsertUpdateChronicleMapViewOnServer extends ThreadMonitoringTest {
 
     @NotNull
     public String connection = "RemoteSubscriptionTest.host.port";
-
+    @Rule
+    public ShutdownHooks hooks = new ShutdownHooks();
     private AssetTree clientAssetTree;
     private VanillaAssetTree serverAssetTree;
     private ServerEndpoint serverEndpoint;
@@ -78,78 +73,57 @@ public class TestInsertUpdateChronicleMapViewOnServer extends ThreadMonitoringTe
 
     @Before
     public void before() throws IOException {
-        IOTools.deleteDirWithFiles("data");
-        serverAssetTree = new VanillaAssetTree().forTesting();
+        serverAssetTree = hooks.addCloseable(new VanillaAssetTree().forTesting());
 
         YamlLogging.setAll(false);
 
         connection = "TestInsertUpdateChronicleMapView.host.port";
         TCPRegistry.createServerSocketChannelFor(connection);
-        serverEndpoint = new ServerEndpoint(connection, serverAssetTree, "cluster");
+        serverEndpoint = hooks.addCloseable(new ServerEndpoint(connection, serverAssetTree, "cluster"));
 
-        serverAssetTree.root().addWrappingRule(MapView.class, "map directly to KeyValueStore",
+        serverAssetTree.root().addWrappingRule(MapView.class, "map directly to " + "KeyValueStore",
                 VanillaMapView::new, KeyValueStore.class);
 
-        serverAssetTree.root().addLeafRule(KeyValueStore.class, "use Chronicle Map", this::createMap);
+        // TODO fix
+        /*serverAssetTree.root().addLeafRule(KeyValueStore.class, "use Chronicle Map", (context, asset) ->
+                new ChronicleMapKeyValueStore(context.basePath(null).entries(100)
+                        .putReturnsNull(false), asset));*/
 
-        clientAssetTree = new VanillaAssetTree().forRemoteAccess(connection, wireType);
+        clientAssetTree = hooks.addCloseable(new VanillaAssetTree().forRemoteAccess(connection, wireType));
 
-    }
-
-    private <K, V> AuthenticatedKeyValueStore<K, V> createMap(RequestContext requestContext, Asset asset) {
-        return new ChronicleMapKeyValueStore<>(createConfig(requestContext), asset);
-    }
-
-    private <K, V> ChronicleMapCfg<K, V> createConfig(RequestContext requestContext) {
-        ChronicleMapCfg cfg = (ChronicleMapCfg) TextWire.from("!ChronicleMapCfg {\n" +
-                "      entries: 10000,\n" +
-                "      keyClass: !type String,\n" +
-                "      valueClass: !type String,\n" +
-                "      exampleKey: \"some_key\",\n" +
-                "      exampleValue: \"some_value\",\n" +
-                "      mapFileDataDirectory: data/mapData,\n" +
-                "    }").readObject();
-
-        cfg.name(requestContext.fullName());
-        return cfg;
     }
 
     @Override
     public void preAfter() {
         clientAssetTree.close();
         Jvm.pause(100);
-        serverEndpoint.close();
         if (serverEndpoint != null)
             serverEndpoint.close();
         serverAssetTree.close();
 
-        IOTools.deleteDirWithFiles("data");
     }
 
     @Test
     public void testInsertFollowedByUpdate() throws InterruptedException {
 
         @NotNull final MapView<String, String> serverMap = serverAssetTree.acquireMap
-                ("testInsertFollowedByUpdateServer?putReturnsNull=false",
+                ("name?putReturnsNull=false",
                         String.class, String
                                 .class);
 
-        @NotNull final BlockingQueue<MapEvent> events = new ArrayBlockingQueue<>(5);
-        clientAssetTree.registerSubscriber("testInsertFollowedByUpdateServer?putReturnsNull=false", MapEvent.class,
+        @NotNull final BlockingQueue<MapEvent> events = new ArrayBlockingQueue<>(1);
+        clientAssetTree.registerSubscriber("name?putReturnsNull=false", MapEvent.class,
                 events::add);
 
         {
             serverMap.put("hello", "world");
-            final MapEvent event = events.poll(5, SECONDS);
-            assertTrue(event instanceof InsertedEvent);
-            // sometimes the event is duplicated
-            events.clear();
+            final MapEvent event = events.poll(10, SECONDS);
+            Assert.assertTrue(event instanceof InsertedEvent);
         }
         {
             serverMap.put("hello", "world2");
-            final MapEvent event = events.poll(5, SECONDS);
-            assertTrue(event instanceof UpdatedEvent);
-            assertNull(events.poll(500, MILLISECONDS));
+            final MapEvent event = events.poll(10, SECONDS);
+            Assert.assertTrue(event instanceof UpdatedEvent);
         }
     }
 
@@ -157,27 +131,25 @@ public class TestInsertUpdateChronicleMapViewOnServer extends ThreadMonitoringTe
     public void testInsertFollowedByUpdateWhenPutReturnsNullTrue() throws InterruptedException {
 
         @NotNull final MapView<String, String> serverMap = serverAssetTree.acquireMap
-                ("testInsertFollowedByUpdateWhenPutReturnsNullTrueServer?putReturnsNull=true",
+                ("name?putReturnsNull=true",
                         String.class, String
                                 .class);
 
         @NotNull final BlockingQueue<MapEvent> events = new ArrayBlockingQueue<>(1);
-        clientAssetTree.registerSubscriber("testInsertFollowedByUpdateWhenPutReturnsNullTrueServer?putReturnsNull=true", MapEvent.class,
+        clientAssetTree.registerSubscriber("name?putReturnsNull=true", MapEvent.class,
                 events::add);
 
         Jvm.pause(500);
 
         {
             serverMap.put("hello", "world");
-            final MapEvent event = events.poll(5, SECONDS);
-            assertTrue(event instanceof InsertedEvent);
-            assertNull(events.poll(500, MILLISECONDS));
+            final MapEvent event = events.poll(10, SECONDS);
+            Assert.assertTrue(event instanceof InsertedEvent);
         }
         {
             serverMap.put("hello", "world2");
-            final MapEvent event = events.poll(5, SECONDS);
-            assertTrue(event instanceof UpdatedEvent);
-            assertNull(events.poll(500, MILLISECONDS));
+            final MapEvent event = events.poll(10, SECONDS);
+            Assert.assertTrue(event instanceof UpdatedEvent);
         }
     }
 }

@@ -64,8 +64,10 @@ public class InMemoryMapCfg implements Installable {
                 .read(() -> "compression").text(this, (o, c) -> o.compression = c)
                 .read(() -> "putReturnsNull").bool(this, (o, e) -> o.putReturnsNull = e)
                 .read(() -> "removeReturnsNull").bool(this, (o, e) -> o.removeReturnsNull = e);
-        while (!wire.isEmpty())
+        while (!wire.isEmpty()) {
             wire.read(() -> "import").text(this, (o, s) -> o.importFile = s);
+            wire.consumePadding();
+        }
     }
 
     @NotNull

@@ -19,37 +19,69 @@ package net.openhft.chronicle.engine.cfg;
 
 import net.openhft.chronicle.engine.api.tree.Asset;
 import net.openhft.chronicle.engine.api.tree.AssetTree;
+import net.openhft.chronicle.engine.api.tree.RequestContext;
 import net.openhft.chronicle.engine.map.ChronicleMapKeyValueStore;
 import net.openhft.chronicle.engine.map.ObjectKeyValueStore;
 import net.openhft.chronicle.engine.tree.VanillaAsset;
+import net.openhft.chronicle.wire.WireIn;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import software.chronicle.enterprise.map.config.ReplicatedMapCfg;
 
-import java.util.Map;
+import java.io.IOException;
 
-public class ChronicleMapCfg<K, V> extends ReplicatedMapCfg<K, V> implements Installable {
-    private Map<String, String> replicationHostMapping;
-
-    public Map<String, String> replicationHostMapping() {
-        return replicationHostMapping;
-    }
-
-    public void replicationHostMapping(Map<String, String> replicationHostMapping) {
-        this.replicationHostMapping = replicationHostMapping;
-    }
+public class ChronicleMapCfg implements Installable {
+    private Class keyType, valueType;
+    private boolean putReturnsNull, removeReturnsNull;
+    private String compression;
+    private String diskPath;
+    private long entries = -1;
+    private double averageKeySize = -1;
+    private double averageValueSize = -1;
 
     @Nullable
     @Override
     public Void install(@NotNull String path, @NotNull AssetTree assetTree) {
-        @NotNull Asset asset = assetTree.acquireAsset(path);
+         @NotNull Asset asset = assetTree.acquireAsset(path);
         ((VanillaAsset) asset).enableTranslatingValuesToBytesStore();
-        name(asset.fullName());
+        @NotNull RequestContext rc = RequestContext.requestContext(path);
+        rc.basePath(diskPath)
+                .putReturnsNull(putReturnsNull)
+                .removeReturnsNull(removeReturnsNull)
+                .keyType(keyType)
+                .valueType(valueType);
 
-        @NotNull ChronicleMapKeyValueStore<K, V> chronicleMapKeyValueStore = new ChronicleMapKeyValueStore<>(this, asset);
+        if (entries != -1) rc.entries(entries);
+        if (averageKeySize != -1) rc.averageKeySize(averageKeySize);
+        if (averageValueSize != -1) rc.averageValueSize(averageValueSize);
+
+        @NotNull ChronicleMapKeyValueStore chronicleMapKeyValueStore = new ChronicleMapKeyValueStore(rc, asset);
         asset.addView(ObjectKeyValueStore.class, chronicleMapKeyValueStore);
 
         return null;
     }
 
+    @Override
+    public void readMarshallable(@NotNull WireIn wire) throws IllegalStateException {
+        wire.read(() -> "diskPath").text(this, (o, c) -> o.diskPath = c)
+                .read(() -> "keyType").typeLiteral(this, (o, c) -> o.keyType = c)
+                .read(() -> "valueType").typeLiteral(this, (o, c) -> o.valueType = c)
+                .read(() -> "compression").text(this, (o, c) -> o.compression = c)
+                .read(() -> "putReturnsNull").bool(this, (o, e) -> o.putReturnsNull = e)
+                .read(() -> "removeReturnsNull").bool(this, (o, e) -> o.removeReturnsNull = e)
+                .read(() -> "entries").int64(this, (o, e) -> o.entries = e)
+                .read(() -> "averageKeySize").float64(this, (o, e) -> o.averageKeySize = e)
+                .read(() -> "averageValueSize").float64(this, (o, e) -> o.averageValueSize = e);
+    }
+
+    @NotNull
+    @Override
+    public String toString() {
+        return "ChronicleMapCfg{" +
+                "keyType=" + keyType +
+                ", valueType=" + valueType +
+                ", putReturnsNull=" + putReturnsNull +
+                ", removeReturnsNull=" + removeReturnsNull +
+                ", compression='" + compression + '\'' +
+                '}';
+    }
 }

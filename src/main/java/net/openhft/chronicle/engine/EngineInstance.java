@@ -22,7 +22,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.chronicle.enterprise.map.ReplicatedMap;
 
 import java.io.IOException;
 
@@ -166,9 +165,9 @@ public class EngineInstance {
         // we add this as close will get called when the asset tree is closed
         tree.root().addView(ServerEndpoint.class, serverEndpoint);
         // map hack
-        ReplicatedMap repl = tree.root().getView(ReplicatedMap.class);
-        if (repl != null)
-            repl.startReplication();
+//      ReplicatedMap repl = tree.root().getView(ReplicatedMap.class);
+//      if (repl != null)
+//          repl.startReplication();
 
       //  tree.registerSubscriber("", TopologicalEvent.class, e -> LOGGER.info("Tree change " + e));
         return tree;
